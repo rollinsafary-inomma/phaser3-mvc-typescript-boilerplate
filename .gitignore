@@ -1,0 +1,25 @@
+# System and IDE files
+Thumbs.db
+.DS_Store
+.idea
+*.suo
+*.sublime-project
+*.sublime-workspace
+.vscode/
+*.log
+.directory
+.firebase
+
+# Vendors
+node_modules/
+
+# Build
+/npm-debug.log
+/www
+/www/assets
+/www/index
+/plugins/
+/platforms/
+/src/phaser
+/.gradle
+

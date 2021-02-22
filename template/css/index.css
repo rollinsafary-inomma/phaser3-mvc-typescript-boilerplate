@@ -1,0 +1,29 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden
+}
+
+#game-container {
+  /* background-position: center; */
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+  /* .gameBg {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  } */
+
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
