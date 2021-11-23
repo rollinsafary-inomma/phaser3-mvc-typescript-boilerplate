@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
-import BaseScene from '../../scenes/BaseScene';
+import BaseScene from '../../../scenes/BaseScene';
+import { ISizeConfig, ITextureConfig } from '../../phaser/CustomTypes';
+import { IBaseButtonText } from './BaseButton';
 
-export default class ButtonState extends Phaser.GameObjects.Container {
+export class ButtonState extends Phaser.GameObjects.Container {
   constructor(scene: BaseScene, config: any) {
     super(scene);
     const { key, frame, label } = config;
@@ -14,4 +16,8 @@ export default class ButtonState extends Phaser.GameObjects.Container {
       );
     }
   }
+}
+
+export interface IButtonState extends ITextureConfig, ISizeConfig {
+  textConfig?: IBaseButtonText;
 }

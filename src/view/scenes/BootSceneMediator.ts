@@ -1,3 +1,4 @@
+import { READY_TO_START_NOTIFICATION } from '../../constants/GlobalNotifications';
 import BaseSceneMediator from './BaseSceneMediator';
 import BootScene from './BootScene';
 
@@ -9,28 +10,24 @@ export default class BootSceneMediator extends BaseSceneMediator<BootScene> {
   }
 
   public registerNotificationInterests(): void {
-    this.subscribeToNotifications();
+    this.subscribeToNotifications(READY_TO_START_NOTIFICATION);
   }
 
   public handleNotification(notificationName: string): void {
-    this.handleDefaultNotifications(notificationName);
     switch (notificationName) {
+      case READY_TO_START_NOTIFICATION:
+        this.setView();
+        break;
       default:
-        console.warn(`${notificationName} is unhandled!`);
+        this.handleDefaultNotifications(notificationName);
         break;
     }
   }
 
-  protected onSceneDestroy(): void {
-    super.onSceneDestroy();
-    this.facade.removeMediator(BootSceneMediator.NAME, this.id);
-  }
-
   private async onBootComplete(): Promise<void> {
-    await this.fadeScreenOut();
-    // this.sceneManager.stop(BootScene.NAME);
-    // this.sceneManager.remove(BootScene.NAME);
-    // this.facade.sendNotification(BootScene.BOOT_COMPLETE_NOTIFICATION);
+    this.sceneManager.stop(BootScene.NAME);
+    this.sceneManager.remove(BootScene.NAME);
+    this.facade.sendNotification(BootScene.BOOT_COMPLETE_NOTIFICATION);
   }
 
   protected setView(): void {

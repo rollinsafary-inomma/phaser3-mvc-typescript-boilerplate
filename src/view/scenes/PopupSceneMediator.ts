@@ -34,18 +34,14 @@ export default class PopupSceneMediator extends BaseSceneMediator<PopupScene> {
     }
   }
 
-  public onSceneReady(): void {
-    super.onSceneReady();
-  }
+  public onSceneReady(): void {}
 
   public onSceneWake(): void {
     this.sceneManager.bringToTop(PopupScene.NAME);
-    super.onSceneWake();
   }
 
   public onSceneSleep(): void {
     this.sceneManager.sendToBack(PopupScene.NAME);
-    super.onSceneSleep();
   }
 
   protected setView(): void {

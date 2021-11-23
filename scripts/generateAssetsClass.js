@@ -6,10 +6,10 @@ const assetsClassFile = 'src/assets.ts';
 
 tree = dirTree('./assets/', {
   normalizePath: true,
-  extensions: /\.json|xml|png|jpg|cur|jpeg|mp3|ogg|ttf|json$/,
+  extensions: /\.json|xml|png|jpg|cur|jpeg|mp3|ogg|ttf|json|svg$/,
 });
 
-const toCamelCase = string => {
+const toCamelCase = (string) => {
   return string
     .replace(/[^A-Za-z0-9]/g, ' ')
     .replace(/^\w|[A-Z]|\b\w|\s+/g, (match, index) => {
@@ -20,7 +20,7 @@ const toCamelCase = string => {
     });
 };
 
-const toPascalCase = string => {
+const toPascalCase = (string) => {
   const camelCase = toCamelCase(string);
   return camelCase[0].toUpperCase() + camelCase.substr(1);
 };
@@ -36,8 +36,7 @@ const handleAssetTree = (node, extension, extensionPair) => {
       shell
         .ShellString(`\nexport namespace  ${toPascalCase(node.name)} {`)
         .toEnd(assetsClassFile);
-
-      node.children.forEach(childNode =>
+      node.children.forEach((childNode) =>
         handleAssetTree(childNode, extension, extensionPair),
       );
 
@@ -91,7 +90,7 @@ const handleAssetTree = (node, extension, extensionPair) => {
   }
 };
 
-const handleAtlasesTree = node => {
+const handleAtlasesTree = (node) => {
   if (node.type === 'directory') {
     if (node.children.length === 0) {
       console.warn(
@@ -102,7 +101,7 @@ const handleAtlasesTree = node => {
       shell
         .ShellString(`\nexport namespace  ${toPascalCase(node.name)} {`)
         .toEnd(assetsClassFile);
-      node.children.forEach(childNode => handleAtlasesTree(childNode));
+      node.children.forEach((childNode) => handleAtlasesTree(childNode));
       shell.ShellString(`\n}`).toEnd(assetsClassFile);
     }
   } else {
@@ -186,7 +185,7 @@ const handleAtlasesTree = node => {
   }
 };
 
-const handleMultiAtlasesTree = node => {
+const handleMultiAtlasesTree = (node) => {
   if (node.type === 'directory') {
     if (node.children.length === 0) {
       console.warn(
@@ -197,7 +196,7 @@ const handleMultiAtlasesTree = node => {
       shell
         .ShellString(`\nexport namespace  ${toPascalCase(node.name)} {`)
         .toEnd(assetsClassFile);
-      node.children.forEach(childNode => handleMultiAtlasesTree(childNode));
+      node.children.forEach((childNode) => handleMultiAtlasesTree(childNode));
       shell.ShellString(`\n}`).toEnd(assetsClassFile);
     }
   } else {
@@ -206,7 +205,6 @@ const handleMultiAtlasesTree = node => {
         const fileData = fs.readFileSync(node.path, 'ascii');
         const json = JSON.parse(fileData);
         const name = node.name.substring(0, node.name.indexOf('.'));
-
         shell
           .ShellString(`\nexport namespace  ${toPascalCase(name)} {`)
           .toEnd(assetsClassFile);
@@ -268,23 +266,17 @@ const handleMultiAtlasesTree = node => {
   }
 };
 
-const loopTree = node => {
+const loopTree = (node) => {
   if (node.children !== void 0) {
     switch (node.name.toLowerCase()) {
       case 'atlases':
         handleAtlasesTree(node);
         break;
-      case 'multiatlases':
+      case 'multi-atlases':
         handleMultiAtlasesTree(node);
-        break;
-      case 'bitmap-fonts':
-        handleAssetTree(node, 'xml', 'png');
         break;
       case 'audios':
         handleAssetTree(node, 'mp3', 'ogg');
-        break;
-      case 'spines':
-        handleSpineTree(node, 'mp3', 'ogg');
         break;
       case 'fonts':
         handleAssetTree(node, 'ttf');
@@ -293,7 +285,7 @@ const loopTree = node => {
         shell
           .ShellString(`\nexport namespace ${toPascalCase(node.name)} {`)
           .toEnd(assetsClassFile);
-        node.children.forEach(child => loopTree(child));
+        node.children.forEach((child) => loopTree(child));
         shell.ShellString('\n}').toEnd(assetsClassFile);
         break;
     }
@@ -318,7 +310,7 @@ const loopTree = node => {
   }
 };
 
-const handleSpineTree = node => {
+const handleFontTree = (node) => {
   if (node.type === 'directory') {
     if (node.children.length === 0) {
       console.warn(
@@ -329,90 +321,7 @@ const handleSpineTree = node => {
       shell
         .ShellString(`\nexport namespace  ${toPascalCase(node.name)} {`)
         .toEnd(assetsClassFile);
-      node.children.forEach(childNode => handleSpineTree(childNode));
-      shell.ShellString(`\n}`).toEnd(assetsClassFile);
-    }
-  } else {
-    if (node.extension === '.json') {
-      try {
-        const fileData = fs.readFileSync(node.path, 'ascii');
-        const json = JSON.parse(fileData);
-
-        let name = node.name.substring(0, node.name.indexOf('.'));
-        let path = node.path;
-        if (name.endsWith('-sd')) {
-          return;
-        } else if (name.endsWith('-hd')) {
-          name = name.replace('-hd', '');
-          path = path.replace('-hd', '');
-        }
-        shell
-          .ShellString(`\nexport namespace  ${toPascalCase(name)} {`)
-          .toEnd(assetsClassFile);
-        shell.ShellString('\nexport class Spine {').toEnd(assetsClassFile);
-        shell
-          .ShellString(`\npublic static Name: string =  '${name}'`)
-          .toEnd(assetsClassFile);
-        shell
-          .ShellString(`\npublic static SkeletonURL: string =  '${path}'`)
-          .toEnd(assetsClassFile);
-        shell
-          .ShellString(
-            `\npublic static AtlasURL: string =  '${path.replace(
-              'json',
-              'atlas',
-            )}'`,
-          )
-          .toEnd(assetsClassFile);
-        shell.ShellString(`\n}`).toEnd(assetsClassFile);
-
-        shell.ShellString(`\nexport namespace  Spine {`).toEnd(assetsClassFile);
-        shell.ShellString(`\nexport enum Animations {`).toEnd(assetsClassFile);
-        for (let animation in json['animations']) {
-          shell
-            .ShellString(`\n ${toPascalCase(animation)} = '${animation}',`)
-            .toEnd(assetsClassFile);
-        }
-        shell.ShellString(`\n}`).toEnd(assetsClassFile);
-
-        shell.ShellString(`\nexport enum Skins {`).toEnd(assetsClassFile);
-        for (let skin in json['skins']) {
-          shell
-            .ShellString(`\n ${toPascalCase('skin' + skin)} = '${skin}',`)
-            .toEnd(assetsClassFile);
-        }
-        shell.ShellString(`\n}`).toEnd(assetsClassFile);
-
-        shell.ShellString(`\nexport enum Skeleton {`).toEnd(assetsClassFile);
-        shell
-          .ShellString(`\nWidth =  ${json['skeleton']['width']},`)
-          .toEnd(assetsClassFile);
-        shell
-          .ShellString(`\Height =  ${json['skeleton']['height']},`)
-          .toEnd(assetsClassFile);
-        shell.ShellString(`\n}`).toEnd(assetsClassFile);
-
-        shell.ShellString(`\n}`).toEnd(assetsClassFile);
-        shell.ShellString(`\n}`).toEnd(assetsClassFile);
-      } catch (e) {
-        console.error('\x1b[31m%s\x1b[0m', `Skeleton Data File Error: ${e}`);
-      }
-    }
-  }
-};
-
-const handleFontTree = node => {
-  if (node.type === 'directory') {
-    if (node.children.length === 0) {
-      console.warn(
-        '\x1b[33m%s\x1b[0m',
-        `Warning!!!\nEmpty directory ${node.path}`,
-      );
-    } else {
-      shell
-        .ShellString(`\nexport namespace  ${toPascalCase(node.name)} {`)
-        .toEnd(assetsClassFile);
-      node.children.forEach(childNode => handleFontTree(childNode));
+      node.children.forEach((childNode) => handleFontTree(childNode));
       shell.ShellString(`\n}`).toEnd(assetsClassFile);
     }
   } else {
@@ -445,6 +354,6 @@ const handleFontTree = node => {
 shell
   .ShellString('/* AUTO GENERATED FILE. DO NOT MODIFY !!! */\n\n')
   .to(assetsClassFile);
-tree.children.forEach(child => loopTree(child));
+tree.children.forEach((child) => loopTree(child));
 
 shell.exec(' tslint --fix src/assets.ts');

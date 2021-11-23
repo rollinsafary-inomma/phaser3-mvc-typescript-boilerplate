@@ -1,4 +1,4 @@
-import { StringIndexedObject } from '../utils/Utils';
+import { StringIndexedObject } from '../view/utils/phaser/CustomTypes';
 
 export enum Orientation {
   PORTRAIT,

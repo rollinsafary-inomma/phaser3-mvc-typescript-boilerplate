@@ -1,34 +1,39 @@
-import { NinePatch } from '@koreez/phaser3-ninepatch';
-import { Images } from '../../assets';
+import { MultiAtlases } from '../../assets';
 import { gameConfig } from '../../constants/GameConfig';
+import Game from '../../Game';
+import BaseScene from '../scenes/BaseScene';
 import PopupScene from '../scenes/PopupScene';
-import { getScene } from '../utils/phaser/PhaserUtils';
 
-export default class StandardPopup extends Phaser.GameObjects.Container {
-  public static NAME: string = 'StandardPopup';
-  public static ACTION_EVENT: string = `${StandardPopup.NAME}ActionEvent`;
+export default class BasePopup extends Phaser.GameObjects.Container {
+  public static NAME: string = 'BasePopup';
+  public static ACTION_EVENT: string = `${BasePopup.NAME}ActionEvent`;
   public static ACTION_CLOSE: number = 0;
 
-  public static SHOW_START_NOTIFICATION: string = `${StandardPopup.NAME}ShowStartNotification`;
-  public static SHOW_COMPLETE_NOTIFICATION: string = `${StandardPopup.NAME}ShowCompleteNotification`;
-  public static HIDE_START_NOTIFICATION: string = `${StandardPopup.NAME}HideStartNotification`;
-  public static HIDE_COMPLETE_NOTIFICATION: string = `${StandardPopup.NAME}HideCompleteNotification`;
+  public static SHOW_START_NOTIFICATION: string = `${BasePopup.NAME}ShowStart`;
+  public static SHOW_COMPLETE_NOTIFICATION: string = `${BasePopup.NAME}ShowComplete`;
+  public static HIDE_START_NOTIFICATION: string = `${BasePopup.NAME}HideStart`;
+  public static HIDE_COMPLETE_NOTIFICATION: string = `${BasePopup.NAME}HideComplete`;
 
-  public static SHOW_START_EVENT: string = `${StandardPopup.NAME}ShowStartEvent`;
-  public static SHOW_COMPLETE_EVENT: string = `${StandardPopup.NAME}ShowCompleteEvent`;
-  public static HIDE_START_EVENT: string = `${StandardPopup.NAME}HideStartEvent`;
-  public static HIDE_COMPLETE_EVENT: string = `${StandardPopup.NAME}HideCompleteEvent`;
+  public static SHOW_START_EVENT: string = `${BasePopup.NAME}ShowStartEvent`;
+  public static SHOW_COMPLETE_EVENT: string = `${BasePopup.NAME}ShowCompleteEvent`;
+  public static HIDE_START_EVENT: string = `${BasePopup.NAME}HideStartEvent`;
+  public static HIDE_COMPLETE_EVENT: string = `${BasePopup.NAME}HideCompleteEvent`;
 
   public blocker: Phaser.GameObjects.Image;
   public isAlivePromise: Promise<void>;
+  public showPromise: Promise<void>;
   protected closeButton: Phaser.GameObjects.GameObject;
 
-  constructor(public scene: PopupScene = getScene(PopupScene.NAME)) {
-    super(scene, gameConfig.canvasWidth / 2, gameConfig.canvasHeight / 2);
-    this.isAlivePromise = new Promise<void>(resolve => {
+  constructor() {
+    super(
+      Game.getInstance().scene.getScene(PopupScene.NAME) as BaseScene,
+      gameConfig.canvasWidth / 2,
+      gameConfig.canvasHeight / 2,
+    );
+    this.isAlivePromise = new Promise<void>((resolve) => {
       this.on(Phaser.GameObjects.Events.DESTROY, resolve);
     });
-    this.createBody();
+    this.createComponents();
     this.scene.add.existing(this);
   }
 
@@ -47,37 +52,42 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
   }
 
   public async show(...args: any[]): Promise<void> {
-    return new Promise<void>(async resolve => {
-      this.emit(StandardPopup.SHOW_START_EVENT);
+    return (this.showPromise = new Promise<void>(async (resolve) => {
+      if (!this.scene) {
+        resolve();
+      }
+      this.emit(BasePopup.SHOW_START_EVENT);
       this.setAlpha(0);
       this.playShowSfx();
-      await this.showBlocker();
-      this.scene.tweens.add({
-        targets: this,
-        alpha: 1,
-        duration: 200,
-        ease: Phaser.Math.Easing.Expo.In,
-        onComplete: () => {
-          this.onShowComplete(...args);
-          resolve();
-        },
-      });
-    });
+      this.showBlocker();
+      !!this.scene &&
+        this.scene.tweens.add({
+          targets: this,
+          alpha: 1,
+          duration: 100,
+          ease: Phaser.Math.Easing.Expo.In,
+          onComplete: async () => {
+            await this.onShowComplete(...args);
+            resolve();
+          },
+        });
+    }));
   }
 
   public async hide(actionId?: number): Promise<void> {
+    await this.showPromise;
     return new Promise((resolve: (value?: void) => void) => {
-      this.emit(StandardPopup.HIDE_START_EVENT);
+      this.emit(BasePopup.HIDE_START_EVENT);
       this.playHideSfx();
       this.scene.tweens.add({
         targets: this,
         alpha: 0,
-        duration: 200,
+        duration: 100,
         ease: Phaser.Math.Easing.Expo.In,
         onComplete: async () => {
           await this.hideBlocker();
           this.visible = false;
-          this.emit(StandardPopup.HIDE_COMPLETE_EVENT, actionId);
+          this.emit(BasePopup.HIDE_COMPLETE_EVENT, actionId);
           resolve();
         },
       });
@@ -92,8 +102,8 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
   }
 
   protected async showBlocker(): Promise<void> {
-    return new Promise<void>(resolve => {
-      if (!this.blocker || !this.blocker.active) {
+    return new Promise<void>((resolve) => {
+      if (!this.scene || !this.blocker || !this.blocker.active) {
         return resolve();
       }
 
@@ -103,7 +113,7 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
       this.scene.tweens.add({
         targets: this.blocker,
         alpha: blockerAlpha,
-        duration: 200,
+        duration: 100,
         onComplete: () => {
           resolve();
         },
@@ -112,18 +122,18 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
   }
 
   protected async hideBlocker(): Promise<void> {
-    return new Promise<void>(resolve => {
-      if (!this.blocker || !this.blocker.active) {
+    return new Promise<void>((resolve) => {
+      if (!this.scene || !this.blocker || !this.blocker.active) {
         return resolve();
       }
 
       this.scene.tweens.add({
         targets: this.blocker,
         alpha: 0,
-        duration: 200,
+        duration: 100,
         onComplete: () => {
-          if (this.blocker) {
-            this.blocker.input.enabled = false;
+          if (!!this.blocker) {
+            !!this.blocker.input && (this.blocker.input.enabled = false);
             this.blocker.visible = false;
             this.blocker.destroy();
           }
@@ -133,7 +143,7 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
     });
   }
 
-  protected createBody(): void {
+  protected createComponents(): void {
     throw new Error(
       `Method 'createBody' is not implemented in ${this.constructor.name}`,
     );
@@ -141,29 +151,10 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
 
   protected onShowComplete(...args: any[]): void {
     this.scene.children.bringToTop(this);
-    this.emit(StandardPopup.SHOW_COMPLETE_EVENT);
+    this.emit(BasePopup.SHOW_COMPLETE_EVENT);
   }
 
-  protected createBg(
-    key: string,
-    frame: string,
-    width: number,
-    height: number,
-  ): NinePatch {
-    const config: any = {
-      key,
-      frame,
-      width,
-      height,
-    };
-    const bg: NinePatch = (this.scene.make as any).ninePatch(config, false);
-    bg.setInteractive();
-    this.add(bg);
-    this.setSize(bg.width, bg.height);
-    return bg;
-  }
-
-  protected createBgImage(
+  protected createBackgroundImage(
     key: string,
     frame: string,
   ): Phaser.GameObjects.Image {
@@ -184,18 +175,16 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
     frame: string,
     alpha: number = 1,
   ): void {
-    const config: any = {
+    this.blocker = this.scene.make.image({
       x: gameConfig.canvasWidth / 2,
       y: gameConfig.canvasHeight / 2,
       key,
       frame,
-    };
-    this.blocker = this.scene.make.image(config);
+    });
     this.blocker.alpha = alpha;
-    this.blocker.visible = false;
     this.blocker.setInteractive();
-    this.setBlockerListeners();
     this.blocker.input.enabled = false;
+    this.add(this.blocker);
   }
 
   protected createColoredBlocker(
@@ -206,38 +195,15 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
     this.blocker = this.scene.make.image({
       x: 0,
       y: 0,
-      key: Images.WhitePixel.Name,
+      key: MultiAtlases.Main.Atlas.Name,
+      frame: MultiAtlases.Main.Atlas.Frames.MainWhitePixel,
     });
     this.blocker.setScale(gameConfig.canvasWidth, gameConfig.canvasHeight);
     this.blocker.setOrigin(0);
     this.blocker.setTintFill(color);
     this.blocker.setAlpha(alpha);
     this.blocker.setInteractive();
-    this.setBlockerListeners();
     this.blocker.input.enabled = false;
-  }
-
-  protected setBlockerListeners(): void {
-    this.blocker.on(
-      Phaser.Input.Events.POINTER_UP,
-      this.blockerPointerUp,
-      this,
-    );
-    this.blocker.on(
-      Phaser.Input.Events.POINTER_DOWN,
-      this.blockerPointerDown,
-      this,
-    );
-    this.blocker.on(
-      Phaser.Input.Events.POINTER_OVER,
-      this.blockerPointerOver,
-      this,
-    );
-    this.blocker.on(
-      Phaser.Input.Events.POINTER_OUT,
-      this.blockerPointerOut,
-      this,
-    );
   }
 
   protected createCancelButton(
@@ -272,10 +238,10 @@ export default class StandardPopup extends Phaser.GameObjects.Container {
   }
 
   protected emitClose(): void {
-    this.emit(StandardPopup.ACTION_EVENT, StandardPopup.ACTION_CLOSE);
+    this.emit(BasePopup.ACTION_EVENT, BasePopup.ACTION_CLOSE);
   }
 
   protected onAction(action: number, ...args: any[]): void {
-    this.emit(StandardPopup.ACTION_EVENT, action, ...args);
+    this.emit(BasePopup.ACTION_EVENT, action, ...args);
   }
 }

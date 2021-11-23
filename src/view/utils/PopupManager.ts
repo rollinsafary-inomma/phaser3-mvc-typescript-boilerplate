@@ -1,19 +1,20 @@
-import StandardPopup from '../popups/StandardPopup';
-import StandardPopupMediator from '../popups/StandardPopupMediator';
-import PopupScene from '../scenes/PopupScene';
-import { postRunnable, getScene } from './phaser/PhaserUtils';
+import BasePopup from '../popups/BasePopup';
+import BasePopupMediator from '../popups/BasePopupMediator';
+import BaseScene from '../scenes/BaseScene';
+import { postRunnable } from './phaser/TimeUtils';
 
 export default class PopupManager {
-  public currentPopup: StandardPopup;
+  public currentPopup: BasePopup;
   private static instance: PopupManager;
-  public queue: IQueue<StandardPopup>[] = [];
+  public static scene: BaseScene;
+  public queue: IQueue<BasePopup>[] = [];
 
   public static getInstance(): PopupManager {
     return this.instance || (this.instance = new this());
   }
 
-  public addToQueue<T extends StandardPopup>(
-    mediator: StandardPopupMediator<T>,
+  public addToQueue<T extends BasePopup>(
+    mediator: BasePopupMediator<T>,
     x: number,
     y: number,
     ...args: any[]
@@ -26,8 +27,8 @@ export default class PopupManager {
     });
   }
 
-  public removeFromQueue<T extends StandardPopup>(
-    mediator: StandardPopupMediator<T>,
+  public removeFromQueue<T extends BasePopup>(
+    mediator: BasePopupMediator<T>,
     ...args: any[]
   ): void {
     const target: any = this.queue.filter((queueData: IQueue<T>) => {
@@ -39,8 +40,8 @@ export default class PopupManager {
     this.queue.remove(target);
   }
 
-  public show<T extends StandardPopup>(
-    mediator: StandardPopupMediator<T>,
+  public show<T extends BasePopup>(
+    mediator: BasePopupMediator<T>,
     x: number,
     y: number,
     ...args: any[]
@@ -56,39 +57,37 @@ export default class PopupManager {
 
   public async hide(actionId?: number): Promise<void> {
     await this.currentPopup.hide(actionId);
-    postRunnable(this.showNextPopup, this);
+    postRunnable(PopupManager.scene, this.showNextPopup, this);
   }
 
   public showNextPopup(): void {
-    !!this.currentPopup && this.currentPopup.active && this.currentPopup.destroy()
+    !!this.currentPopup &&
+      this.currentPopup.active &&
+      this.currentPopup.destroy();
     this.queue.shift();
     this.currentPopup = null;
-    this.hasQueue ? this.internalShow() : getScene(PopupScene.NAME).sys.sleep()
+    this.hasQueue ? this.internalShow() : PopupManager.scene.sys.sleep();
   }
 
   private internalShow(): void {
-    const popupData: IQueue<StandardPopup> = this.queue[0];
+    const popupData: IQueue<BasePopup> = this.queue[0];
     popupData.mediator.prepareToShow(
       popupData.x,
       popupData.y,
       ...popupData.args,
     );
     this.currentPopup = popupData.mediator.getViewComponent();
-    this.scene.sys.isSleeping() && this.scene.sys.wake()
+    PopupManager.scene.sys.isSleeping() && PopupManager.scene.sys.wake();
     this.currentPopup.show(popupData.x, popupData.y, ...popupData.args);
   }
 
   get hasQueue(): boolean {
     return !!this.queue.length;
   }
-
-  get scene(): PopupScene {
-    return getScene(PopupScene.NAME)
-  }
 }
 
-interface IQueue<T extends StandardPopup> {
-  mediator: StandardPopupMediator<T>;
+interface IQueue<T extends BasePopup> {
+  mediator: BasePopupMediator<T>;
   x: number;
   y: number;
   args: any[];

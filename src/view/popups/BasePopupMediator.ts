@@ -1,13 +1,11 @@
 import { gameConfig } from '../../constants/GameConfig';
 import { BaseMediator } from '../base/BaseMediator';
 import PopupManager from '../utils/PopupManager';
-import StandardPopup from './StandardPopup';
-import GameFacade from '../../GameFacade';
-import { Game } from 'phaser';
+import BasePopup from './BasePopup';
 
-export default abstract class StandardPopupMediator<
-  T extends StandardPopup
-  > extends BaseMediator<T> {
+export default abstract class BasePopupMediator<
+  T extends BasePopup
+> extends BaseMediator<T> {
   protected popupManager: PopupManager;
   constructor(name: string) {
     super(name, null);
@@ -19,7 +17,7 @@ export default abstract class StandardPopupMediator<
   }
 
   public handleNotification(notificationName: string): void {
-    console.warn(`${notificationName} is unhandled!`);
+    this.onUnhandledNotification(notificationName);
   }
 
   protected createView(viewComponent?: T): void {
@@ -48,7 +46,7 @@ export default abstract class StandardPopupMediator<
     this.viewComponent.prepareToShow(x, y, ...args);
   }
 
-  public hideView(actionId?:number, ...args: any[]): void {
+  public hideView(actionId?: number, ...args: any[]): void {
     !!this.viewComponent && this.popupManager.hide(actionId);
   }
 
@@ -58,25 +56,25 @@ export default abstract class StandardPopupMediator<
 
   protected onViewShow(): void {
     this.sendNotification(
-      StandardPopup.SHOW_START_NOTIFICATION,
+      BasePopup.SHOW_START_NOTIFICATION,
       this.viewComponent.constructor.name,
     );
   }
   protected onViewShowComplete(): void {
     this.sendNotification(
-      StandardPopup.SHOW_COMPLETE_NOTIFICATION,
+      BasePopup.SHOW_COMPLETE_NOTIFICATION,
       this.viewComponent.constructor.name,
     );
   }
   protected onViewHide(): void {
     this.sendNotification(
-      StandardPopup.HIDE_START_NOTIFICATION,
+      BasePopup.HIDE_START_NOTIFICATION,
       this.viewComponent.constructor.name,
     );
   }
   protected onViewHideComplete(...args: any[]): void {
     this.sendNotification(
-      StandardPopup.HIDE_COMPLETE_NOTIFICATION,
+      BasePopup.HIDE_COMPLETE_NOTIFICATION,
       this.viewComponent.constructor.name,
     );
   }
@@ -90,27 +88,19 @@ export default abstract class StandardPopupMediator<
   }
 
   protected registerEvents(): void {
+    this.viewComponent.on(BasePopup.SHOW_START_EVENT, this.onViewShow, this);
     this.viewComponent.on(
-      StandardPopup.SHOW_START_EVENT,
-      this.onViewShow,
-      this,
-    );
-    this.viewComponent.on(
-      StandardPopup.SHOW_COMPLETE_EVENT,
+      BasePopup.SHOW_COMPLETE_EVENT,
       this.onViewShowComplete,
       this,
     );
+    this.viewComponent.on(BasePopup.HIDE_START_EVENT, this.onViewHide, this);
     this.viewComponent.on(
-      StandardPopup.HIDE_START_EVENT,
-      this.onViewHide,
-      this,
-    );
-    this.viewComponent.on(
-      StandardPopup.HIDE_COMPLETE_EVENT,
+      BasePopup.HIDE_COMPLETE_EVENT,
       this.onViewHideComplete,
       this,
     );
-    this.viewComponent.on(StandardPopup.ACTION_EVENT, this.onAction, this);
+    this.viewComponent.on(BasePopup.ACTION_EVENT, this.onAction, this);
     this.viewComponent.on(
       Phaser.GameObjects.Events.DESTROY,
       this.onViewComponentDestroy,
@@ -119,27 +109,19 @@ export default abstract class StandardPopupMediator<
   }
 
   protected removeEvents(): void {
+    this.viewComponent.off(BasePopup.SHOW_START_EVENT, this.onViewShow, this);
     this.viewComponent.off(
-      StandardPopup.SHOW_START_EVENT,
-      this.onViewShow,
-      this,
-    );
-    this.viewComponent.off(
-      StandardPopup.SHOW_COMPLETE_EVENT,
+      BasePopup.SHOW_COMPLETE_EVENT,
       this.onViewShowComplete,
       this,
     );
+    this.viewComponent.off(BasePopup.HIDE_START_EVENT, this.onViewHide, this);
     this.viewComponent.off(
-      StandardPopup.HIDE_START_EVENT,
-      this.onViewHide,
-      this,
-    );
-    this.viewComponent.off(
-      StandardPopup.HIDE_COMPLETE_EVENT,
+      BasePopup.HIDE_COMPLETE_EVENT,
       this.onViewHideComplete,
       this,
     );
-    this.viewComponent.off(StandardPopup.ACTION_EVENT, this.onAction, this);
+    this.viewComponent.off(BasePopup.ACTION_EVENT, this.onAction, this);
     this.viewComponent.off(
       Phaser.GameObjects.Events.DESTROY,
       this.onViewComponentDestroy,
@@ -152,7 +134,4 @@ export default abstract class StandardPopupMediator<
     this.removeEvents();
     this.viewComponent = null;
   }
-
-
-
 }

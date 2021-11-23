@@ -1,30 +1,38 @@
-import { I18nGame, I18nPlugin } from '@candywings/phaser3-i18n-plugin';
-import { Facade } from '@candywings/pure-mvc';
+import { Facade } from '@rollinsafary/mvc';
+import { I18nGame, I18nPlugin } from '@rollinsafary/phaser3-i18n-plugin';
 import { Locales } from './assets';
 import { gameConfig } from './constants/GameConfig';
-import GameFacade from './GameFacade';
+import { STARTUP_NOTIFICATION } from './constants/GlobalNotifications';
 import { generateGameConfiguration } from './view/utils/phaser/PhaserUtils';
 
 export default class Game extends I18nGame {
   public static NAME: string = 'Game';
+
+  protected static instance: Game;
+
+  public static getInstance(): Game {
+    if (!this.instance) {
+      new Game();
+    }
+    return this.instance;
+  }
   constructor() {
     super(generateGameConfiguration());
+    Game.instance = this;
     this.createI18n();
-    this.initializeArchitecture();
     window.onresize = this.resize.bind(this);
     this.resize();
     this.canvas.focus();
-    window.addEventListener('beforeunload', () => {
-      for (const scene of this.scene.getScenes(true)) {
-        scene.sys.pause();
-      }
+    window.addEventListener('beforeunload', this.onBeforeUnload.bind(this), {
+      once: true,
     });
+    this.events.on(Phaser.Core.Events.READY, this.initializeArchitecture, this);
   }
 
   public initializeArchitecture(): void {
-    GameFacade.game = this;
-    Facade.getInstance = GameFacade.getInstance;
-    Facade.getInstance(Game.NAME);
+    const facade = Facade.getInstance(Game.NAME);
+    // facade.initializeFacade();
+    facade.sendNotification(STARTUP_NOTIFICATION);
   }
 
   public createI18n(): void {
@@ -70,5 +78,9 @@ export default class Game extends I18nGame {
       gameConfig.canvasWidth,
       gameConfig.canvasHeight,
     );
+  }
+
+  private onBeforeUnload(): void {
+    this.canvas.style.display = 'none';
   }
 }

@@ -1,69 +1,39 @@
-export type StringIndexedObject<T> = { [key: string]: T };
+export type StringKeys<T> = { [key: string]: T };
 
 declare global {
   interface Array<T> {
-    contains(element: T): boolean;
     remove(...element: T[]): T[];
     getFirst(): T;
     getLast(): T;
     addAt(index: number, ...elements: T[]): T[];
+    removeAt(index: number, ...elements: T[]): T;
   }
 }
-Array.prototype.contains = function<T>(element: T) {
-  return this.indexOf(element) !== -1;
-};
-Array.prototype.remove = function<T>(...elements: T[]) {
+
+Array.prototype.remove = function <T>(...elements: T[]) {
   for (const element of elements) {
     this.includes(element) && this.splice(this.indexOf(element), 1);
   }
   return elements;
 };
-Array.prototype.getLast = function<T>() {
+Array.prototype.getLast = function () {
   return this[this.length - 1];
 };
-Array.prototype.getFirst = function<T>() {
+Array.prototype.getFirst = function () {
   return this[0];
 };
-Array.prototype.addAt = function<T>(index: number, ...elements: T[]) {
-  const arrayLastPart: T[] = this.splice(index, this.length - index - 1);
-  this.remove(...arrayLastPart);
-  this.push(...elements, ...arrayLastPart);
+Array.prototype.addAt = function <T>(index: number, ...elements: T[]) {
+  this.splice(index, 0, ...elements);
   return this;
 };
 
-export function serialize(object: any): any {
+Array.prototype.removeAt = function (index: number) {
+  this.splice(index, 1);
+  return this;
+};
+
+export function serialize<T>(object: T): T {
   return JSON.parse(JSON.stringify(object));
-}
-
-export function blackLog(...args: any[]): void {
-  write('#000000', '#ffffff', args.shift(), ...args);
-}
-export function brownLog(...args: any[]): void {
-  write('#654321', '#ffffff', args.shift(), ...args);
-}
-export function greyLog(...args: any[]): void {
-  write('#8e8e8e', '#ffffff', args.shift(), ...args);
-}
-
-export function write(
-  backgroundColor: string,
-  fontColor: string,
-  text: any,
-  ...args: any[]
-): void {
-  const consoleArgs: string[] = [
-    ``,
-    `background: ${'#c8c8ff'}`,
-    `background: ${'#9696ff'}`,
-    `color: ${fontColor}; background: ${backgroundColor};`,
-    `background: ${'#9696ff'}`,
-    `background: ${'#c8c8ff'}`,
-  ];
-
-  consoleArgs[0] = `%c %c %c ${text} ${
-    args ? '\n' + JSON.stringify(args, null, '\t') : ''
-  } %c %c`;
-  console.log.apply(console, consoleArgs);
 }
 
 export function formatTime(ms: number): string {
@@ -137,9 +107,18 @@ function generateStringPart(exponent: number): string {
 
 declare const VERSION: string;
 
+declare const env: IEnvironmentVariable;
 declare const mode: string;
 declare const __APP_VERSION__: string;
+declare const envName: string;
 
+export function getEnvName(): string {
+  return envName;
+}
+
+export function getEnv(): IEnvironmentVariable {
+  return env;
+}
 export function getMode(): string {
   return mode;
 }
@@ -181,27 +160,70 @@ export function populateAndConcat(
   return result;
 }
 
-export function disableConsoleFunctions(): void {
-  window.console.log = window.console.info = window.console.warn = window.console.error = () => {};
-}
-
-export function disableInspectElement(): void {
-  document.onkeydown = function(e: KeyboardEvent) {
-    switch (true) {
-      case e.keyCode === 123:
-      case e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0):
-      case e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0):
-      case e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0):
-      case e.ctrlKey && e.keyCode == 'U'.charCodeAt(0):
-        event.preventDefault();
-        return false;
-      default:
-        break;
-    }
-  };
-}
-
 export function getFramesCountByString(node: any, str: string): number {
   const keys: string[] = Object.keys(node);
   return keys.filter((value: string) => value.indexOf(str) !== -1).length;
+}
+
+export interface IEnv {
+  API_ROUTE: string;
+}
+
+export function shuffleArray<T>(array: Array<T>): void {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
+  }
+}
+
+export async function loadScript(url: string, params?: any): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const script: HTMLScriptElement & StringKeys<any> =
+      document.createElement('script');
+    script.src = url;
+    if (!!params) {
+      const keys: string[] = Object.keys(params);
+      for (const key of keys) {
+        script[key] = params[key];
+      }
+    }
+    document.head.append(script);
+    script.onload = () => resolve();
+    script.onerror = (error: any) => reject(error);
+  });
+}
+
+export function fromObjectToArgs(object: any, keys?: string[]): any[] {
+  const currentKeys: string[] = Object.keys(object);
+  for (let i: number = 0; i < keys.length; i++) {
+    const key: string = keys[i];
+    if (currentKeys.includes(key)) {
+      currentKeys.remove(key);
+      currentKeys.addAt(i, key);
+    }
+  }
+  return keys.map((key: string) => object[key]);
+}
+
+export function pickAny<T>(array: Array<T>): T {
+  return array[Phaser.Math.Between(0, array.length - 1)];
+}
+
+export function copyToClipboard(line: string): void {
+  const textArea: HTMLTextAreaElement = document.createElement('textarea');
+  textArea.value = line;
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textArea);
+}
+
+export interface IEnvironmentVariable {
+  API_HOST: string;
+  PUSHER_APP_KEY: string;
+  PUSHER_CLUSTER: string;
+  ZOEY_ID: number;
+  TITAN_API_KEY: string;
 }

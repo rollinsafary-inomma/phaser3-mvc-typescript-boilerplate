@@ -1,23 +1,25 @@
 const webpack = require('webpack');
-const CleanWebpackPlugin = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const package = require('../package.json');
+const envProduction = require('../envs/env.production');
+const envDevelopment = require('../envs/env.development');
+const envLocal = require('../envs/env.local');
 
 exports.devServer = ({ host, port } = {}) => ({
   devServer: {
-    stats: 'errors-only',
     host,
     port,
-    overlay: {
-      errors: true,
-      warnings: true,
+    client: {
+      overlay: {
+        errors: true,
+        warnings: true,
+      },
     },
   },
 });
 
 exports.cleanup = (paths, verbose = false) => ({
-  plugins: [
-    new CleanWebpackPlugin(paths, { root: process.cwd(), verbose: verbose }),
-  ],
+  plugins: [new CleanWebpackPlugin({ verbose: verbose })],
 });
 
 exports.loadJs = ({ options }) => ({
@@ -35,29 +37,37 @@ exports.loadJs = ({ options }) => ({
       },
 
       {
-        test: [/\.vert$/, /\.frag$/],
+        test: [/\.vert$/, /\.frag$/, /\.bin$/, /\.txt$/],
         use: 'raw-loader',
       },
     ],
   },
 });
 
-exports.sourceMaps = method => ({
+exports.sourceMaps = (method) => ({
   devtool: method,
 });
 
-exports.envVar = mode => ({
+const envs = {
+  local: envLocal,
+  development: envDevelopment,
+  production: envProduction,
+};
+
+exports.envVar = (envName, modeName) => ({
   plugins: [
     new webpack.DefinePlugin({
-      mode: JSON.stringify(mode),
+      env: JSON.stringify(envs[envName]),
+      mode: JSON.stringify(modeName),
       name: JSON.stringify(package.name),
+      envName: JSON.stringify(envName),
       CANVAS_RENDERER: JSON.stringify(true),
       WEBGL_RENDERER: JSON.stringify(true),
     }),
   ],
 });
 
-exports.injectVersion = version => ({
+exports.injectVersion = (version) => ({
   plugins: [
     new webpack.DefinePlugin({
       __APP_VERSION__: JSON.stringify(version),

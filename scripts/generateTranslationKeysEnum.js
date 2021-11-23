@@ -5,7 +5,7 @@ const translations = JSON.parse(translationsFile);
 const translationsFilePath = 'src/translations.ts';
 
 function toUpperCase(string) {
-  return string.replace(/-/g, '_').toUpperCase();
+  return string.replace(/\./g, '_').toUpperCase();
 }
 
 function generateEnumLine(key) {

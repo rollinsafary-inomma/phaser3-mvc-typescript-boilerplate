@@ -37,13 +37,10 @@
     "triple-equals": [true, "allow-null-check"],
     "ordered-imports": false,
     "no-namespace": false,
-    "max-classes-per-file" : false,
+    "max-classes-per-file": false,
     "trailing-comma": false,
     "no-unused-variable": false,
-    "quotemark": [
-      true,
-      "single"
-    ],
+    "quotemark": [true, "single"],
     "typedef": [
       true,
       "call-signature",
@@ -53,7 +50,6 @@
       "variable-declaration",
       "member-variable-declaration"
     ],
-    "use-strict": true,
     "variable-name": [true, "allow-leading-underscore", "ban-keywords"]
   }
 }
